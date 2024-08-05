@@ -3,13 +3,13 @@ const Contact = require("../Models/contactModel");
 //@desc controllers :interacts with the database
 
 const getContacts = ayncHandler(async (req, res) => {
-  const contacts = await Contact.find();
+  const contacts = await Contact.find({user_id: req.user.id});
   res.status(200).json(contacts);
 });
 
 //desc getContact
 //@route /api/contacts/:id
-//access public
+//access private
 const getContact = ayncHandler(async (req, res) => {
   const contact = await Contact.findById(req.params.id);
   if (!contact) {
@@ -35,6 +35,7 @@ const createContact = ayncHandler(async (req, res) => {
     name,
     email,
     phone,
+    user_id:req.user.id
   });
 
   // const {name,email,phonenumber}=req.body;
@@ -45,6 +46,18 @@ const createContact = ayncHandler(async (req, res) => {
 //@route /api/contacts/:id
 //access public
 const updateContact = ayncHandler(async (req, res) => {
+  const contact = await Contact.findById(req.params.id);
+  if (!contact) {
+    res.status(404);
+    throw new Error("Contact not found");
+  }
+
+  if(contact.user_id.toString()!==req.user.id){
+    res.status(403);
+    throw new Error("Unauthorized update of credential")
+
+  }
+ 
   const updatedContact = await Contact.findByIdAndUpdate(
     req.params.id,
     req.body,
@@ -65,7 +78,7 @@ const deleteContact = ayncHandler(async (req, res) => {
     throw new Error("Contact not found");
   };
 
-  await contact.deleteOne();
+  await contact.deleteOne({_id: req.params.id});
 
   res.status(200).json(contact)
 
